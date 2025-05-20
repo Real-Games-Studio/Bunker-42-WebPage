@@ -144,5 +144,28 @@
           }, 100);
       });
     </script>
+    <script>
+      // Detecta quando o conteúdo WebGL está carregado
+      document.addEventListener("DOMContentLoaded", function() {
+          // Aguarda o UnityLoader ou UnityInstance estar pronto
+          var trySelect = function() {
+              var canvas = document.getElementById('canvas') || document.querySelector('canvas');
+              if (canvas) {
+                  if (typeof window.SelectWebGLCanvas === "function") {
+                      window.SelectWebGLCanvas();
+                  } else if (typeof window.Module !== "undefined" && Module.SelectWebGLCanvas) {
+                      Module.SelectWebGLCanvas();
+                  } else {
+                      // Fallback direto
+                      canvas.focus();
+                      canvas.style.outline = "2px solid #00f";
+                  }
+              } else {
+                  setTimeout(trySelect, 100);
+              }
+          };
+          trySelect();
+      });
+    </script>
   </body>
 </html>
