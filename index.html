@@ -3,11 +3,11 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
     <title>Bunker42</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
-    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
   </head>
   <body class="dark">
     <div id="unity-container" class="unity-desktop">
@@ -83,11 +83,66 @@
               unityInstance.SetFullscreen(1);
             };
           }
+          
+          // Store Unity instance for keyboard detection
+          window.unityInstance = unityInstance;
         }).catch((message) => {
           alert(message);
         });
       };
       document.body.appendChild(script);
+    </script>
+    <script>
+      /**
+       * Detects if the virtual keyboard is overlaying or pushing the viewport,
+       * and notifies Unity accordingly.
+       */
+      function notifyKeyboardState() {
+          var unityInstance = window.unityInstance || null;
+          if (!unityInstance || !unityInstance.SendMessage) return;
+
+          // Save initial viewport height
+          if (!window._initialInnerHeight) {
+              window._initialInnerHeight = window.innerHeight;
+          }
+
+          // Compare current height to initial
+          var heightDiff = window._initialInnerHeight - window.innerHeight;
+          var isKeyboardVisible = heightDiff > 100; // px threshold
+
+          // Detect overlay vs push
+          var keyboardMode = "none";
+          if (isKeyboardVisible) {
+              keyboardMode = heightDiff > 0 ? "push" : "overlay";
+              document.body.classList.add("keyboard-visible");
+          } else {
+              document.body.classList.remove("keyboard-visible");
+          }
+
+          // Send to Unity
+          unityInstance.SendMessage('KeyboardManager', 'OnWebGLKeyboardState', keyboardMode);
+      }
+
+      // Listen for resize events (keyboard open/close)
+      window.addEventListener('resize', function() {
+          notifyKeyboardState();
+      });
+
+      // Listen for focus/blur on inputs
+      document.addEventListener('focusin', function() {
+          setTimeout(notifyKeyboardState, 100); // Slight delay for keyboard to appear
+      });
+      
+      document.addEventListener('focusout', function() {
+          setTimeout(notifyKeyboardState, 100); // Slight delay for keyboard to hide
+      });
+      
+      // Initial notification on page load
+      window.addEventListener('load', function() {
+          setTimeout(function() {
+              window._initialInnerHeight = window.innerHeight;
+          }, 100);
+      });
     </script>
   </body>
 </html>

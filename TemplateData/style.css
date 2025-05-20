@@ -16,11 +16,9 @@ html, body {
 }
 canvas {
     display: block;
-    width: 100vw !important;
-    height: 100vh !important;
-    max-width: 100vw;
-    max-height: 100vh;
-    position: fixed;
+    width: 100%;
+    height: 100%;
+    position: absolute; /* Changed from fixed to absolute */
     top: 0;
     left: 0;
     background: #000;
@@ -33,6 +31,7 @@ body {
 #unity-container {
     width: 100%;
     height: 100%;
+    position: relative; /* Added position relative */
 }
 #unity-canvas {
     width: 100%;
@@ -123,6 +122,14 @@ body {
 input, textarea {
     font-size: 16px;
     /* Prevents iOS zoom */
+}
+
+/* Fix for mobile devices when keyboard appears */
+@media screen and (max-height: 450px) {
+    canvas {
+        height: auto !important;
+        min-height: 100%;
+    }
 }
 
 
