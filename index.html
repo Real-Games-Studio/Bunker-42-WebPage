@@ -167,5 +167,44 @@
           trySelect();
       });
     </script>
+    <script>
+      /**
+       * Sends information about the device type to Unity.
+       * This can be called directly from Unity via the DeviceDetection plugin.
+       */
+      function getDeviceType() {
+        var deviceType = "unknown";
+        var userAgent = navigator.userAgent;
+        
+        if (/iPhone/i.test(userAgent)) {
+          deviceType = "iPhone";
+        } else if (/iPad|iPod/i.test(userAgent)) {
+          deviceType = "iPad";
+        } else if (/Android/i.test(userAgent)) {
+          deviceType = "Android";
+        } else {
+          deviceType = "Computer";
+        }
+        
+        return deviceType;
+      }
+      
+      // Add device info to debugging
+      window.addEventListener('load', function() {
+        console.log("Device type detected: " + getDeviceType());
+        
+        // After Unity is loaded, we'll send the device type
+        var checkUnityLoaded = setInterval(function() {
+          if (window.unityInstance) {
+            try {
+              window.unityInstance.SendMessage('KeyboardManager', 'OnDeviceDetected', getDeviceType());
+              clearInterval(checkUnityLoaded);
+            } catch (e) {
+              console.error("Error sending device type to Unity:", e);
+            }
+          }
+        }, 500);
+      });
+    </script>
   </body>
 </html>
