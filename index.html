@@ -206,5 +206,45 @@
         }, 500);
       });
     </script>
+    <script>
+      /**
+       * Sends information about the device type to Unity.
+       */
+      function detectDeviceType() {
+        var userAgent = navigator.userAgent;
+        var deviceType = "unknown";
+        
+        if (/iPhone/i.test(userAgent)) {
+          deviceType = "iPhone";
+        } else if (/iPad|iPod/i.test(userAgent)) {
+          deviceType = "iPad";
+        } else if (/Android/i.test(userAgent)) {
+          deviceType = "Android";
+        } else {
+          deviceType = "Computer";
+        }
+        
+        return deviceType;
+      }
+      
+      // Add device info to debugging
+      window.addEventListener('load', function() {
+        var deviceType = detectDeviceType();
+        console.log("Device type detected by JS: " + deviceType);
+        
+        // After Unity is loaded, we'll send the device type
+        var checkUnityLoaded = setInterval(function() {
+          if (window.unityInstance) {
+            try {
+              window.unityInstance.SendMessage('KeyboardManager', 'OnDeviceDetected', deviceType);
+              console.log("Device type sent to Unity: " + deviceType);
+              clearInterval(checkUnityLoaded);
+            } catch (e) {
+              console.error("Error sending device type to Unity:", e);
+            }
+          }
+        }, 500);
+      });
+    </script>
   </body>
 </html>
