@@ -132,4 +132,57 @@ input, textarea {
     }
 }
 
+/* Add these keyboard-related styles to the end of your existing CSS file */
+
+/* Base keyboard styles */
+.keyboard-visible {
+    /* Common styles for when keyboard is visible */
+}
+
+/* Push mode - content moves up to avoid keyboard */
+.keyboard-push {
+    /* Content shifts upward to avoid keyboard */
+}
+
+.keyboard-push canvas,
+.keyboard-push #unity-container {
+    position: absolute;
+    /* Ensure smooth transitions */
+    transition: transform 0.3s ease-out;
+}
+
+/* Overlay mode - keyboard appears on top of content */
+.keyboard-overlay {
+    /* Keep content in place, keyboard will overlay */
+}
+
+.keyboard-overlay canvas,
+.keyboard-overlay #unity-container {
+    position: fixed;
+    /* Cancel any transformations that might have been applied */
+    transform: none !important;
+}
+
+/* Responsive adjustments for keyboard visibility */
+@media screen and (max-height: 450px) {
+    /* When keyboard is visible and screen becomes smaller */
+    .keyboard-visible.keyboard-push canvas {
+        /* Ensure content remains accessible */
+        transform: translateY(-25%);
+    }
+}
+
+/* Prevent zooming on input focus */
+input, textarea, select {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+    max-height: 999999px; /* Prevents Android zoom on focus */
+}
+
+/* Ensure the active input is above the fold when keyboard is visible */
+.keyboard-visible input:focus,
+.keyboard-visible textarea:focus {
+    position: relative;
+    z-index: 1000; /* Ensure input is visible above other content */
+}
+
 
