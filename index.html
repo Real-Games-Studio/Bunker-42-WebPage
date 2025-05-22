@@ -94,159 +94,55 @@
     </script>
     <script>
       /**
-       * Enhanced virtual keyboard handler for WebGL
+       * Detects if the virtual keyboard is overlaying or pushing the viewport,
+       * and notifies Unity accordingly.
        */
-      (function() {
-        // Configuration
-        var config = {
-            preferredBehavior: 'auto', // 'auto', 'push', or 'overlay'
-            detectionThreshold: 100,   // Height difference threshold to detect keyboard
-            inputSelector: 'input, textarea', // Selectors for input elements
-            debug: false // Set to true for console log debugging
-        };
-        
-        // State tracking
-        var state = {
-            initialHeight: 0,
-            keyboardVisible: false,
-            currentMode: 'none',
-            measurementTimeout: null
-        };
-        
-        // Initialize on page load
-        function initialize() {
-            if (config.debug) console.log('Initializing WebGL keyboard handler');
-            
-            // Save initial viewport height
-            state.initialHeight = window.innerHeight;
-            
-            // Setup event listeners
-            window.addEventListener('resize', handleResize);
-            document.addEventListener('focusin', handleFocusIn);
-            document.addEventListener('focusout', handleFocusOut);
-            
-            // Apply any stored behavior preference from URL parameters
-            var urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('keyboard')) {
-                config.preferredBehavior = urlParams.get('keyboard');
-            }
-        }
-        
-        // Handle window resize (potential keyboard appearance)
-        function handleResize() {
-            clearTimeout(state.measurementTimeout);
-            state.measurementTimeout = setTimeout(measureKeyboard, 100);
-        }
-        
-        // Handle input focus (keyboard likely to appear)
-        function handleFocusIn(event) {
-            // Only care about input elements
-            if (!event.target.matches(config.inputSelector)) return;
-            
-            // Mark that we expect a keyboard
-            state.keyboardVisible = true;
-            
-            // Measure with a slight delay to account for keyboard animation
-            clearTimeout(state.measurementTimeout);
-            state.measurementTimeout = setTimeout(measureKeyboard, 300);
-        }
-        
-        // Handle input blur (keyboard likely to disappear)
-        function handleFocusOut(event) {
-            // Only care about input elements
-            if (!event.target.matches(config.inputSelector)) return;
-            
-            // Mark that keyboard should be gone
-            state.keyboardVisible = false;
-            
-            // Measure with a delay to account for keyboard animation
-            clearTimeout(state.measurementTimeout);
-            state.measurementTimeout = setTimeout(measureKeyboard, 300);
-        }
-        
-        // Measure keyboard state and notify Unity
-        function measureKeyboard() {
-            // If initialHeight not set yet, set it now
-            if (!state.initialHeight) {
-                state.initialHeight = window.innerHeight;
-                return;
-            }
-            
-            var heightDiff = state.initialHeight - window.innerHeight;
-            var keyboardDetected = heightDiff > config.detectionThreshold;
-            
-            // Determine keyboard mode
-            var newMode = 'none';
-            if (keyboardDetected) {
-                // Force specific behavior if configured
-                if (config.preferredBehavior === 'push') {
-                    newMode = 'push';
-                    document.body.classList.add('keyboard-push');
-                    document.body.classList.remove('keyboard-overlay');
-                } 
-                else if (config.preferredBehavior === 'overlay') {
-                    newMode = 'overlay';
-                    document.body.classList.add('keyboard-overlay');
-                    document.body.classList.remove('keyboard-push');
-                }
-                // Auto detection
-                else {
-                    if (heightDiff > 0) {
-                        newMode = 'push';
-                        document.body.classList.add('keyboard-push');
-                        document.body.classList.remove('keyboard-overlay');
-                    } else {
-                        newMode = 'overlay';
-                        document.body.classList.add('keyboard-overlay');
-                        document.body.classList.remove('keyboard-push');
-                    }
-                }
-                
-                document.body.classList.add('keyboard-visible');
-            } else {
-                document.body.classList.remove('keyboard-visible');
-                document.body.classList.remove('keyboard-push');
-                document.body.classList.remove('keyboard-overlay');
-            }
-            
-            // Only notify Unity if mode changed
-            if (newMode !== state.currentMode) {
-                state.currentMode = newMode;
-                notifyUnity(newMode);
-            }
-        }
-        
-        // Notify Unity of keyboard state change
-        function notifyUnity(mode) {
-            if (config.debug) console.log('Keyboard mode: ' + mode);
-            
-            var unityInstance = window.unityInstance || null;
-            if (unityInstance && unityInstance.SendMessage) {
-                unityInstance.SendMessage('KeyboardManager', 'OnWebGLKeyboardState', mode);
-            }
-        }
-        
-        // Public API
-        window.WebGLKeyboard = {
-            setPreferredBehavior: function(behavior) {
-                if (['auto', 'push', 'overlay'].indexOf(behavior) !== -1) {
-                    config.preferredBehavior = behavior;
-                    if (config.debug) console.log('Keyboard behavior set to: ' + behavior);
-                    measureKeyboard(); // Re-measure immediately
-                }
-            },
-            debug: function(enabled) {
-                config.debug = !!enabled;
-            }
-        };
-        
-        // Initialize when document is ready
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            initialize();
-        } else {
-            window.addEventListener('DOMContentLoaded', initialize);
-        }
-      })();
+      function notifyKeyboardState() {
+          var unityInstance = window.unityInstance || null;
+          if (!unityInstance || !unityInstance.SendMessage) return;
+
+          // Save initial viewport height
+          if (!window._initialInnerHeight) {
+              window._initialInnerHeight = window.innerHeight;
+          }
+
+          // Compare current height to initial
+          var heightDiff = window._initialInnerHeight - window.innerHeight;
+          var isKeyboardVisible = heightDiff > 100; // px threshold
+
+          // Detect overlay vs push
+          var keyboardMode = "none";
+          if (isKeyboardVisible) {
+              keyboardMode = heightDiff > 0 ? "push" : "overlay";
+              document.body.classList.add("keyboard-visible");
+          } else {
+              document.body.classList.remove("keyboard-visible");
+          }
+
+          // Send to Unity
+          unityInstance.SendMessage('KeyboardManager', 'OnWebGLKeyboardState', keyboardMode);
+      }
+
+      // Listen for resize events (keyboard open/close)
+      window.addEventListener('resize', function() {
+          notifyKeyboardState();
+      });
+
+      // Listen for focus/blur on inputs
+      document.addEventListener('focusin', function() {
+          setTimeout(notifyKeyboardState, 100); // Slight delay for keyboard to appear
+      });
+      
+      document.addEventListener('focusout', function() {
+          setTimeout(notifyKeyboardState, 100); // Slight delay for keyboard to hide
+      });
+      
+      // Initial notification on page load
+      window.addEventListener('load', function() {
+          setTimeout(function() {
+              window._initialInnerHeight = window.innerHeight;
+          }, 100);
+      });
     </script>
     <script>
       // Detecta quando o conteúdo WebGL está carregado
